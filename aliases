@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# .aliases 파일
+if [[ -z "$DAOS_HOME" ]]; then
+    echo "Error: DAOS_HOME is not set. Please export it before loading aliases."
+    return 1
+fi
+
+alias findnvme="$DAOS_HOME/scripts/findnvme.sh"
