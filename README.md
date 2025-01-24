@@ -22,5 +22,5 @@ daos_server start --config=${DAOS_HOME}/conf/daos_server.yml
 ```bash
 cd <project_dir>
 . daosenv $(pwd)
-daos_agent start --config=${DAOS_HOME}/conf/daos_agent.yml
+daos_agent start --config-path=${DAOS_HOME}/conf/daos_agent.yml
 ```
