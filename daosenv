@@ -13,6 +13,8 @@ if [[ ! -d "$DAOS_HOME" ]]; then
   return 1
 fi
 
+export DAOS_HOME
+
 USER=$(whoami)
 GROUP=$(id -gn)
 ALIAS_FILE="$DAOS_HOME/aliases"
