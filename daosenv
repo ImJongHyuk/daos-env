@@ -71,7 +71,6 @@ DAOS_SERVER_SERVICE_FILE="$DAOS_HOME/systemd/daos_server.service"
 DAOS_AGENT_TEMPLATE_FILE="$DAOS_HOME/systemd/daos_agent.service.template"
 DAOS_AGENT_SERVICE_FILE="$DAOS_HOME/systemd/daos_agent.service"
 
-
 # Sub
 sed -e "s|\${USER}|$USER|g" \
   -e "s|\${GROUP}|$GROUP|g" \

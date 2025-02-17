@@ -9,6 +9,15 @@ fi
 # Define install-daos command
 alias install-daos="$DAOS_HOME/scripts/install.sh"
 
+# Alias for starting DAOS server
+alias start-daos-server="$DAOS_INSTALL_DIR/bin/daos_server start --config=\${DAOS_HOME}/conf/daos_server.yml"
+
+# Alias for starting DAOS agent
+alias start-daos-agent="$DAOS_INSTALL_DIR/bin/daos_agent start --config-path=\${DAOS_HOME}/conf/daos_agent.yml"
+
+# Alias for insecure dmg command
+alias dmgi="dmg -i --config-path=\$DAOS_HOME/conf/daos_control.yml"
+
 # Load nvme-utils commands
 if [ -d "$DAOS_HOME/nvme-utils" ]; then
   for script in "$DAOS_HOME/nvme-utils"/*.sh; do
