@@ -19,21 +19,7 @@ SPDK_REPO_URL="https://github.com/spdk/spdk.git"
 SPDK_DIR=$BUILD_DIR/spdk
 DAOS_REPO_URL="https://github.com/daos-stack/daos.git"
 DAOS_REPO_DIR=$BUILD_DIR/daos
-FORCE_INSTALL=false
-
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --force)
-      FORCE_INSTALL=true
-      shift
-      ;;
-    *)
-      echo "Unknown option: $1"
-      exit 1
-      ;;
-  esac
-done
+DAOS_INSTALL_DIR="$BUILD_DIR/daos/install"
 
 # Utility functions
 version_ge() {
@@ -59,12 +45,12 @@ is_fio_installed() {
   return 0
 }
 
-is_spdk_installed() {
+is_spdk_built() {
   if [ ! -d "$SPDK_DIR" ]; then
     return 1
   fi
-  # Check SPDK library
-  if [ ! -f "$SPDK_DIR/bin/spdk_tgt" ]; then
+  # Check SPDK build artifacts
+  if [ ! -f "$SPDK_DIR/build/bin/spdk_tgt" ]; then
     return 1
   fi
   return 0
@@ -82,7 +68,7 @@ is_daos_installed() {
 }
 
 install_go() {
-  if ! $FORCE_INSTALL && is_go_installed; then
+  if is_go_installed; then
     echo "Go $REQUIRED_GO_VERSION or higher is already installed. Skipping..."
     return 0
   fi
@@ -108,23 +94,10 @@ install_go() {
   echo "Go $REQUIRED_GO_VERSION installed successfully."
 }
 
-build_and_install_spdk() {
-  if ! $FORCE_INSTALL && is_spdk_installed; then
-    echo "SPDK is already installed. Skipping..."
-    return 0
-  fi
-
-  echo "Building and installing SPDK..."
-  set -e
+build_spdk() {
+  echo "Building SPDK..."
   make -j$(nproc)
-  make install
-  echo "SPDK build and install completed."
-}
-
-run_spdk_setup() {
-  echo "Running SPDK setup script..."
-  /usr/share/spdk/scripts/setup.sh || echo "SPDK setup encountered an error."
-  echo "SPDK setup script completed."
+  echo "SPDK build completed."
 }
 
 # Start main script
@@ -190,7 +163,7 @@ fi
 install_go
 
 # Install FIO
-if ! $FORCE_INSTALL && is_fio_installed; then
+if is_fio_installed; then
   echo "FIO is already installed. Skipping..."
 else
   echo "Installing FIO..."
@@ -204,9 +177,9 @@ else
   cd $PROJECT_HOME
 fi
 
-# Install SPDK
-if ! $FORCE_INSTALL && is_spdk_installed; then
-  echo "SPDK is already installed. Skipping..."
+# Build SPDK
+if is_spdk_built; then
+  echo "SPDK is already built. Skipping..."
 else
   if [ ! -d "$SPDK_DIR" ]; then
     echo "Cloning SPDK repository..."
@@ -215,25 +188,26 @@ else
   cd $SPDK_DIR
   git submodule update --init --recursive
   ./scripts/pkgdep.sh
-  ./configure --with-rdma --with-fio --prefix=/usr/local/spdk
-  build_and_install_spdk
-  mkdir -p /usr/share/spdk/scripts
-  cp -r scripts/* /usr/share/spdk/scripts
-  run_spdk_setup
+  ./configure --with-rdma --with-fio
+  build_spdk
   cd $PROJECT_HOME
 fi
 
 # Install DAOS
-if ! $FORCE_INSTALL && is_daos_installed; then
+if is_daos_installed; then
   echo "DAOS is already installed. Skipping..."
 else
-  if [ ! -d "$DAOS_REPO_DIR" ]; then
-    echo "Cloning DAOS repository..."
-    git clone "$DAOS_REPO_URL" "$DAOS_REPO_DIR"
+  if [ -d "$DAOS_REPO_DIR" ]; then
+    echo "Removing existing DAOS directory..."
+    rm -rf "$DAOS_REPO_DIR"
   fi
+  
+  echo "Cloning DAOS repository..."
+  git clone "$DAOS_REPO_URL" "$DAOS_REPO_DIR"
   cd $DAOS_REPO_DIR
   git checkout release/${DAOS_RELEASE}
   git submodule update --init --recursive
+  
   python3 -m pip --no-cache-dir install -r requirements-build.txt -r requirements-utest.txt
   scons --build-deps=yes install
   cd $PROJECT_HOME
