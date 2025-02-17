@@ -5,3 +5,19 @@ if [[ -z "$DAOS_HOME" ]]; then
   echo "Error: DAOS_HOME is not set. Please export it before loading aliases."
   return 1
 fi
+
+# Define install-daos command
+alias install-daos="$DAOS_HOME/scripts/install.sh"
+
+# Load nvme-utils commands
+if [ -d "$DAOS_HOME/nvme-utils" ]; then
+  for script in "$DAOS_HOME/nvme-utils"/*.sh; do
+    if [ -f "$script" ]; then
+      aliasname=$(basename "$script" .sh)
+      alias "$aliasname"="$script"
+    fi
+  done
+  echo "nvme-utils commands initialized"
+else
+  echo "nvme-utils submodule not found. Please add it with: git submodule add https://github.com/ImJongHyuk/nvme-utils.git nvme-utils"
+fi
