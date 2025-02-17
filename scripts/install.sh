@@ -233,6 +233,13 @@ else
     git clone "$DAOS_REPO_URL" "$DAOS_REPO_DIR"
   fi
   cd $DAOS_REPO_DIR
+  
+  # Clean build directory when using --force
+  if [ "$FORCE_INSTALL" = true ]; then
+    echo "Force install: Cleaning previous build..."
+    rm -rf "$DAOS_INSTALL_DIR"
+  fi
+  
   git checkout release/${DAOS_RELEASE}
   git submodule update --init --recursive
   python3 -m pip --no-cache-dir install -r requirements-build.txt -r requirements-utest.txt
