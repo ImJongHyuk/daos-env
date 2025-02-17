@@ -1,21 +1,23 @@
 #!/bin/bash
+# daosenv
 
 if [[ $# -eq 0 ]]; then
-    echo "Usage: . ./daosenv <root_project_directory>"
-    return 1
+  echo "Usage: . ./daosenv <root_project_directory>"
+  return 1
 fi
 
 DAOS_HOME=$1
 
 if [[ ! -d "$DAOS_HOME" ]]; then
-    echo "Error: Directory $DAOS_HOME does not exist."
-    return 1
+  echo "Error: Directory $DAOS_HOME does not exist."
+  return 1
 fi
 
 USER=$(whoami)
 GROUP=$(id -gn)
 ALIAS_FILE="$DAOS_HOME/aliases"
 DAOS_INSTALL_DIR="$DAOS_HOME/build/daos/install"
+NVME_UTILS_DIR="$DAOS_HOME/nvme-utils"
 
 BIN_DIR="$DAOS_INSTALL_DIR/bin"
 LIB_DIR="$DAOS_INSTALL_DIR/lib"
@@ -24,18 +26,18 @@ LIB64_DIR="$DAOS_INSTALL_DIR/lib64"
 export DAOS_INSTALL_PATH=$DAOS_INSTALL_DIR
 
 if [[ -d "$BIN_DIR" ]]; then
-    export PATH="$BIN_DIR:$PATH"
-    echo "Added $BIN_DIR to PATH"
+  export PATH="$BIN_DIR:$PATH"
+  echo "Added $BIN_DIR to PATH"
 fi
 
 if [[ -d "$LIB_DIR" ]]; then
-    export LD_LIBRARY_PATH="$LIB_DIR:$LD_LIBRARY_PATH"
-    echo "Added $LIB_DIR to LD_LIBRARY_PATH"
+  export LD_LIBRARY_PATH="$LIB_DIR:$LD_LIBRARY_PATH"
+  echo "Added $LIB_DIR to LD_LIBRARY_PATH"
 fi
 
 if [[ -d "$LIB64_DIR" ]]; then
-    export LD_LIBRARY_PATH="$LIB64_DIR:$LD_LIBRARY_PATH"
-    echo "Added $LIB64_DIR to LD_LIBRARY_PATH"
+  export LD_LIBRARY_PATH="$LIB64_DIR:$LD_LIBRARY_PATH"
+  echo "Added $LIB64_DIR to LD_LIBRARY_PATH"
 fi
 
 echo "Current PATH: $PATH"
@@ -43,10 +45,22 @@ echo "Current LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
 # Set aliases
 if [[ -f "$ALIAS_FILE" ]]; then
-    source "$ALIAS_FILE"
-    echo "Aliases loaded from $ALIAS_FILE"
+  source "$ALIAS_FILE"
+  echo "Aliases loaded from $ALIAS_FILE"
 else
-    echo "Alias file $ALIAS_FILE not found"
+  echo "Alias file $ALIAS_FILE not found"
+fi
+
+if [ -d "$NVME_UTILS_DIR" ]; then
+  for script in "$NVME_UTILS_DIR"/*.sh; do
+    if [ -f "$script" ]; then
+      aliasname=$(basename "$script" .sh)
+      alias "$aliasname"="$script"
+    fi
+  done
+  echo "nvme-utils initialized; aliases set."
+else
+  echo "nvme-utils submodule not found. Please add it with: git submodule add https://github.com/ImJongHyuk/nvme-utils.git nvme-utils"
 fi
 
 # Update Systemd Service Profile
@@ -55,15 +69,16 @@ DAOS_SERVER_SERVICE_FILE="$DAOS_HOME/systemd/daos_server.service"
 DAOS_AGENT_TEMPLATE_FILE="$DAOS_HOME/systemd/daos_agent.service.template"
 DAOS_AGENT_SERVICE_FILE="$DAOS_HOME/systemd/daos_agent.service"
 
+
 # Sub
 sed -e "s|\${USER}|$USER|g" \
-    -e "s|\${GROUP}|$GROUP|g" \
-    -e "s|\${DAOS_ENV_PATH}|$DAOS_HOME|g" \
-    "$DAOS_SERVER_TEMPLATE_FILE" > "$DAOS_SERVER_SERVICE_FILE"
+  -e "s|\${GROUP}|$GROUP|g" \
+  -e "s|\${DAOS_ENV_PATH}|$DAOS_HOME|g" \
+  "$DAOS_SERVER_TEMPLATE_FILE" > "$DAOS_SERVER_SERVICE_FILE"
 sed -e "s|\${USER}|$USER|g" \
-    -e "s|\${GROUP}|$GROUP|g" \
-    -e "s|\${DAOS_ENV_PATH}|$DAOS_HOME|g" \
-    "$DAOS_AGENT_TEMPLATE_FILE" > "$DAOS_AGENT_SERVICE_FILE"
+  -e "s|\${GROUP}|$GROUP|g" \
+  -e "s|\${DAOS_ENV_PATH}|$DAOS_HOME|g" \
+  "$DAOS_AGENT_TEMPLATE_FILE" > "$DAOS_AGENT_SERVICE_FILE"
 
 chmod 644 "$DAOS_SERVER_SERVICE_FILE"
 chmod 644 "$DAOS_AGENT_SERVICE_FILE"
@@ -71,5 +86,5 @@ chmod 644 "$DAOS_AGENT_SERVICE_FILE"
 mkdir -p /var/run/daos_server
 mkdir -p /var/run/daos_agent
 
-sysctl -w vm.nr_hugepages=4096
+sysctl -w vm.nr_hugepages=16384
 cat /proc/meminfo | grep HugePages

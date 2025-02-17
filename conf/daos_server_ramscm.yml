@@ -1,23 +1,22 @@
-# daos_server.yml (MD-on-SSD)
+# daos_server_ramscm.yml
 
 name: daos_server
 port: 10001
 provider: ofi+tcp
 disable_hugepages: false
 control_log_mask: DEBUG
-control_metadata:
-  path: /var/daos/config-md
+#socket_dir: /opt/daos/daos_server
 access_points:
   - "storage01"
   - "storage02"
   - "storage03"
-
+    
 transport_config:
   allow_insecure: true
 
 engines:
-  - targets: 48
-    nr_xs_helpers: 12
+  - targets: 16
+    nr_xs_helpers: 4
     fabric_iface: bond0.2
     fabric_iface_port: 31416
     log_file: /tmp/daos_engine.00.log
@@ -29,11 +28,11 @@ engines:
     storage:
       - class: ram
         scm_mount: /mnt/daos/scm
-        scm_size: 60
+        scm_size: 150
       - class: nvme
-        bdev_list: ["0000:44:00.0"]
-        bdev_roles: [wal]
-      - class: nvme
-        bdev_list: ["0000:c4:00.0", "0000:c5:00.0", "0000:c6:00.0", "0000:c7:00.0"]
-        bdev_roles: [meta, data]
+        bdev_list:
+          - "0000:c4:00.0"
+          - "0000:c5:00.0"
+          - "0000:c6:00.0"
+          - "0000:c7:00.0"
 control_log_file: /tmp/daos_server.log
