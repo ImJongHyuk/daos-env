@@ -19,7 +19,8 @@ SPDK_REPO_URL="https://github.com/spdk/spdk.git"
 SPDK_DIR=$BUILD_DIR/spdk
 DAOS_REPO_URL="https://github.com/daos-stack/daos.git"
 DAOS_REPO_DIR=$BUILD_DIR/daos
-DAOS_INSTALL_DIR="$BUILD_DIR/daos/install"
+DAOS_BUILD_DIR="$DAOS_REPO_DIR/build"
+DAOS_INSTALL_DIR="$BUILD_DIR/install"
 FORCE_INSTALL=false
 
 # Parse command-line arguments
@@ -233,16 +234,24 @@ else
     git clone "$DAOS_REPO_URL" "$DAOS_REPO_DIR"
   fi
   cd $DAOS_REPO_DIR
-  
-  # Clean build directory when using --force
-  if [ "$FORCE_INSTALL" = true ]; then
-    echo "Force install: Cleaning previous build..."
-    rm -rf "$DAOS_INSTALL_DIR"
-  fi
+
+  rm -rf "$DAOS_INSTALL_DIR"
+  rm -rf "$DAOS_BUILD_DIR"
   
   git checkout release/${DAOS_RELEASE}
   git submodule update --init --recursive
   python3 -m pip --no-cache-dir install -r requirements-build.txt -r requirements-utest.txt
+
+  # Check AVX-512 support
+  if ! grep -q "avx512f" /proc/cpuinfo; then
+    echo "AVX-512 Foundation not supported by CPU, disabling for ISA-L build..."
+    export CFLAGS="-DAVX512=0"
+    export CONFIGURE_FLAGS="--disable-avx512"
+  else
+    echo "AVX-512 support detected (flags: $(grep -o 'avx512[^ ]*' /proc/cpuinfo | tr '\n' ' '))"
+    echo "Proceeding with full ISA-L features"
+  fi
+  
   scons --build-deps=yes install
   cd $PROJECT_HOME
 fi
